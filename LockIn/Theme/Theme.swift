@@ -222,7 +222,8 @@ struct SectionTitle: View {
 }
 
 /// The scrolling red marquee strip at the very top. Two identical copies of the line scroll
-/// left by exactly one copy width, so the loop is seamless.
+/// left by exactly one copy width, so the loop is seamless. The copies live in an overlay so
+/// their (very large) intrinsic width never influences the window layout.
 struct MarqueeBar: View {
     var items: [String]
     var pointsPerSecond: CGFloat = 55
@@ -235,29 +236,27 @@ struct MarqueeBar: View {
 
     var body: some View {
         let text = line
-        ZStack(alignment: .leading) {
-            // Hidden measuring copy.
-            marqueeText(text)
-                .hidden()
-                .background {
-                    GeometryReader { geo in
-                        Color.clear
-                            .onAppear { restart(width: geo.size.width) }
-                            .onChange(of: geo.size.width) { _, w in restart(width: w) }
-                    }
+        Color.clear
+            .frame(height: 28)
+            .frame(maxWidth: .infinity)
+            .background(Ink.coral)
+            .overlay(alignment: .leading) {
+                HStack(spacing: 0) {
+                    marqueeText(text)
+                        .background {
+                            GeometryReader { geo in
+                                Color.clear
+                                    .onAppear { restart(width: geo.size.width) }
+                                    .onChange(of: geo.size.width) { _, w in restart(width: w) }
+                            }
+                        }
+                    marqueeText(text)
                 }
                 .fixedSize()
-            HStack(spacing: 0) {
-                marqueeText(text).fixedSize()
-                marqueeText(text).fixedSize()
+                .offset(x: offset)
             }
-            .offset(x: offset)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: 28)
-        .background(Ink.coral)
-        .overlay(alignment: .bottom) { Rectangle().fill(Ink.black).frame(height: 3) }
-        .clipped()
+            .overlay(alignment: .bottom) { Rectangle().fill(Ink.black).frame(height: 3) }
+            .clipped()
     }
 
     private func marqueeText(_ text: String) -> some View {
@@ -269,7 +268,7 @@ struct MarqueeBar: View {
     }
 
     private func restart(width: CGFloat) {
-        guard width > 0, width != copyWidth else { return }
+        guard width > 0, abs(width - copyWidth) > 0.5 else { return }
         copyWidth = width
         offset = 0
         let duration = Double(width / pointsPerSecond)
