@@ -67,6 +67,7 @@ struct ReflectionSheet: View {
                                             .overlay(Rectangle().stroke(Ink.black, lineWidth: 3))
                                     }
                                 }
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }

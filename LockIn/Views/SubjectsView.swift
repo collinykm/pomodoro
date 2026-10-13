@@ -138,7 +138,9 @@ struct SubjectRow: View {
                     Text(subject.name)
                         .font(TypeStyle.heading(18))
                         .foregroundStyle(Ink.black)
-                    Tag(text: subject.displayCode, fill: Ink.white)
+                    if !subject.category.trimmingCharacters(in: .whitespaces).isEmpty {
+                        Tag(text: subject.category, fill: Ink.white)
+                    }
                     if subject.isArchived { Tag(text: "Archived", fill: Ink.paper) }
                     if isActive { Tag(text: "Active", fill: Ink.yellow) }
                 }
@@ -203,107 +205,173 @@ struct SubjectEditor: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Query private var allSubjects: [Subject]
 
     @State private var name = ""
-    @State private var code = ""
     @State private var emoji = "📚"
     @State private var kind: SubjectKind = .course
+    @State private var category = ""
     @State private var colorHex = "FF6B6B"
     @State private var weeklyGoalHours: Double = 3
 
-    private let emojiChoices = ["📚", "📐", "💻", "🧪", "🧬", "📖", "✍️", "🎨", "🎵", "🏛️", "🌍", "⚖️", "💰", "🛠️", "🚀", "🧠", "🏃", "🎯"]
+    private let emojiChoices = [
+        "📚", "📐", "📏", "🧮", "➗", "💻", "🖥️", "⌨️", "🤖", "🧪", "🔬", "🧬", "⚗️", "🔭", "🌌",
+        "📖", "✍️", "📝", "📓", "🗣️", "🌍", "🗺️", "🏛️", "⚖️", "💰", "📈", "🎨", "🎭", "🎵", "🎸",
+        "🎬", "📷", "🏃", "🧘", "🍎", "🩺", "🛠️", "🔧", "⚙️", "🚀", "💡", "🧠", "🎯", "🔥", "⭐️",
+    ]
+
+    /// Categories already used by other subjects go first, then the built-in suggestions.
+    private var categoryChoices: [String] {
+        var seen: [String] = []
+        for c in allSubjects.map(\.category).filter({ !$0.trimmingCharacters(in: .whitespaces).isEmpty }) + SubjectCategory.suggestions {
+            if !seen.contains(where: { $0.caseInsensitiveCompare(c) == .orderedSame }) { seen.append(c) }
+        }
+        return seen
+    }
 
     var body: some View {
         ZStack {
             PaperBackground()
-            VStack(alignment: .leading, spacing: 22) {
-                Text(subject == nil ? "NEW SUBJECT" : "EDIT SUBJECT")
-                    .font(TypeStyle.display(30))
-                    .tracking(-1)
-                    .foregroundStyle(Ink.black)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 4)
-                    .brutalCard(Ink.yellow, rotation: -1.5)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    Text(subject == nil ? "NEW SUBJECT" : "EDIT SUBJECT")
+                        .font(TypeStyle.display(30))
+                        .tracking(-1)
+                        .foregroundStyle(Ink.black)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+                        .brutalCard(Ink.yellow, rotation: -1.5)
 
-                field("Name") {
-                    TextField("Organic Chemistry", text: $name)
-                }
-                field("Short code (optional)") {
-                    TextField("CHEM 210", text: $code)
-                }
+                    field("Name") {
+                        TextField("Organic Chemistry", text: $name)
+                    }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("TYPE").font(TypeStyle.label(10)).tracking(1.2).foregroundStyle(Ink.muted)
-                    HStack(spacing: 8) {
-                        ForEach(SubjectKind.allCases) { k in
-                            Button {
-                                kind = k
-                            } label: {
-                                Label(k.rawValue, systemImage: k.icon)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("TYPE").font(TypeStyle.label(10)).tracking(1.2).foregroundStyle(Ink.muted)
+                        HStack(spacing: 8) {
+                            ForEach(SubjectKind.allCases) { k in
+                                Button {
+                                    kind = k
+                                } label: {
+                                    Label(k.rawValue, systemImage: k.icon)
+                                }
+                                .buttonStyle(BrutalButtonStyle(fill: kind == k ? Ink.coral : Ink.white, size: 12, horizontalPadding: 14, verticalPadding: 9))
                             }
-                            .buttonStyle(BrutalButtonStyle(fill: kind == k ? Ink.coral : Ink.white, size: 12, horizontalPadding: 14, verticalPadding: 9))
                         }
                     }
-                }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("EMOJI").font(TypeStyle.label(10)).tracking(1.2).foregroundStyle(Ink.muted)
-                    FlowLayout(spacing: 6) {
-                        ForEach(emojiChoices, id: \.self) { e in
-                            Button { emoji = e } label: {
-                                Text(e).font(.system(size: 20))
-                                    .frame(width: 38, height: 38)
-                                    .background(emoji == e ? Ink.yellow : Ink.white)
-                                    .overlay(Rectangle().stroke(Ink.black, lineWidth: emoji == e ? 3 : 2))
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("CATEGORY").font(TypeStyle.label(10)).tracking(1.2).foregroundStyle(Ink.muted)
+                        Text("Groups subjects in the stats, so Calculus and Linear Algebra both count toward Math.")
+                            .font(TypeStyle.body(12)).foregroundStyle(Ink.muted)
+                        TextField("Math, Computer Science, …", text: $category)
+                            .textFieldStyle(.plain)
+                            .font(TypeStyle.body(16))
+                            .foregroundStyle(Ink.black)
+                            .padding(12)
+                            .background(Ink.white)
+                            .overlay(Rectangle().stroke(Ink.black, lineWidth: 3))
+                        FlowLayout(spacing: 6) {
+                            ForEach(categoryChoices, id: \.self) { c in
+                                let selected = c.caseInsensitiveCompare(category.trimmingCharacters(in: .whitespaces)) == .orderedSame
+                                Button {
+                                    category = c
+                                } label: {
+                                    Text(c)
+                                        .font(.system(size: 11, weight: .heavy))
+                                        .foregroundStyle(Ink.black)
+                                        .padding(.horizontal, 9)
+                                        .padding(.vertical, 5)
+                                        .background(selected ? Ink.yellow : Ink.white)
+                                        .overlay(Rectangle().stroke(Ink.black, lineWidth: 2))
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
                         }
                     }
-                }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("COLOR").font(TypeStyle.label(10)).tracking(1.2).foregroundStyle(Ink.muted)
-                    HStack(spacing: 8) {
-                        ForEach(Ink.subjectPalette, id: \.self) { hex in
-                            let str = String(format: "%06X", hex)
-                            Button { colorHex = str } label: {
-                                Rectangle()
-                                    .fill(Color(hex: hex))
-                                    .frame(width: 36, height: 36)
-                                    .overlay(Rectangle().stroke(Ink.black, lineWidth: colorHex == str ? 4 : 2))
-                                    .overlay {
-                                        if colorHex == str {
-                                            Image(systemName: "checkmark").font(.system(size: 14, weight: .black)).foregroundStyle(Ink.black)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("ICON").font(TypeStyle.label(10)).tracking(1.2).foregroundStyle(Ink.muted)
+                        HStack(spacing: 12) {
+                            Text(emoji.isEmpty ? "?" : emoji)
+                                .font(.system(size: 30))
+                                .frame(width: 56, height: 56)
+                                .background(Color(hexString: colorHex))
+                                .overlay(Rectangle().stroke(Ink.black, lineWidth: 3))
+                            VStack(alignment: .leading, spacing: 4) {
+                                TextField("Type or paste any emoji", text: Binding(
+                                    get: { emoji },
+                                    set: { emoji = String($0.trimmingCharacters(in: .whitespaces).prefix(1)) }
+                                ))
+                                .textFieldStyle(.plain)
+                                .font(TypeStyle.body(16))
+                                .foregroundStyle(Ink.black)
+                                .padding(10)
+                                .background(Ink.white)
+                                .overlay(Rectangle().stroke(Ink.black, lineWidth: 3))
+                                Text("Press ⌃⌘Space for the emoji picker, or tap one below.")
+                                    .font(TypeStyle.body(11)).foregroundStyle(Ink.muted)
+                            }
+                        }
+                        FlowLayout(spacing: 6) {
+                            ForEach(emojiChoices, id: \.self) { e in
+                                Button { emoji = e } label: {
+                                    Text(e).font(.system(size: 20))
+                                        .frame(width: 38, height: 38)
+                                        .background(emoji == e ? Ink.yellow : Ink.white)
+                                        .overlay(Rectangle().stroke(Ink.black, lineWidth: emoji == e ? 3 : 2))
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("COLOR").font(TypeStyle.label(10)).tracking(1.2).foregroundStyle(Ink.muted)
+                        HStack(spacing: 8) {
+                            ForEach(Ink.subjectPalette, id: \.self) { hex in
+                                let str = String(format: "%06X", hex)
+                                Button { colorHex = str } label: {
+                                    Rectangle()
+                                        .fill(Color(hex: hex))
+                                        .frame(width: 36, height: 36)
+                                        .overlay(Rectangle().stroke(Ink.black, lineWidth: colorHex == str ? 4 : 2))
+                                        .overlay {
+                                            if colorHex == str {
+                                                Image(systemName: "checkmark").font(.system(size: 14, weight: .black)).foregroundStyle(Ink.black)
+                                            }
                                         }
-                                    }
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .buttonStyle(.plain)
                         }
                     }
-                }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("WEEKLY GOAL · \(weeklyGoalHours == 0 ? "NONE" : String(format: "%.1fH", weeklyGoalHours))")
-                        .font(TypeStyle.label(10)).tracking(1.2).foregroundStyle(Ink.muted)
-                    Slider(value: $weeklyGoalHours, in: 0...20, step: 0.5)
-                        .tint(Ink.coral)
-                }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("WEEKLY GOAL · \(weeklyGoalHours == 0 ? "NONE" : String(format: "%.1fH", weeklyGoalHours))")
+                            .font(TypeStyle.label(10)).tracking(1.2).foregroundStyle(Ink.muted)
+                        Slider(value: $weeklyGoalHours, in: 0...20, step: 0.5)
+                            .tint(Ink.coral)
+                    }
 
-                HStack {
-                    Button("Cancel") { dismiss() }
-                        .buttonStyle(BrutalButtonStyle(fill: Ink.white))
-                        .keyboardShortcut(.cancelAction)
-                    Spacer()
-                    Button(subject == nil ? "Add subject" : "Save") { save() }
-                        .buttonStyle(BrutalButtonStyle(fill: Ink.coral))
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                    HStack {
+                        Button("Cancel") { dismiss() }
+                            .buttonStyle(BrutalButtonStyle(fill: Ink.white))
+                            .keyboardShortcut(.cancelAction)
+                        Spacer()
+                        Button(subject == nil ? "Add subject" : "Save") { save() }
+                            .buttonStyle(BrutalButtonStyle(fill: Ink.coral))
+                            .keyboardShortcut(.defaultAction)
+                            .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
                 }
+                .padding(30)
             }
-            .padding(30)
         }
-        .frame(width: 560)
-        .fixedSize(horizontal: false, vertical: true)
+        .frame(width: 600, height: 760)
         .preferredColorScheme(.light)
         .onAppear(perform: load)
     }
@@ -324,29 +392,31 @@ struct SubjectEditor: View {
     private func load() {
         guard let subject else { return }
         name = subject.name
-        code = subject.code
         emoji = subject.emoji
         kind = subject.kind
+        category = subject.category
         colorHex = subject.colorHex
         weeklyGoalHours = Double(subject.weeklyGoalMinutes) / 60
     }
 
     private func save() {
         let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let trimmedCategory = category.trimmingCharacters(in: .whitespaces)
+        let icon = emoji.isEmpty ? "📚" : emoji
         let goal = Int(weeklyGoalHours * 60)
         if let subject {
             subject.name = trimmedName
-            subject.code = code.trimmingCharacters(in: .whitespaces)
-            subject.emoji = emoji
+            subject.emoji = icon
             subject.kind = kind
+            subject.category = trimmedCategory
             subject.colorHex = colorHex
             subject.weeklyGoalMinutes = goal
         } else {
             let new = Subject(name: trimmedName,
-                              code: code.trimmingCharacters(in: .whitespaces),
-                              emoji: emoji,
+                              emoji: icon,
                               colorHex: colorHex,
                               kind: kind,
+                              category: trimmedCategory,
                               weeklyGoalMinutes: goal,
                               sortOrder: nextSortOrder)
             context.insert(new)

@@ -5,6 +5,7 @@ enum Screen: String, CaseIterable, Identifiable {
     case focus = "Focus"
     case subjects = "Subjects"
     case stats = "Stats"
+    case log = "Log"
     case tasks = "Tasks"
     case settings = "Settings"
     var id: String { rawValue }
@@ -103,6 +104,7 @@ struct ContentView: View {
                         Rectangle().fill(Ink.yellow).overlay(Rectangle().stroke(Ink.black, lineWidth: 3))
                     }
                 }
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -113,6 +115,7 @@ struct ContentView: View {
         case .focus: TimerView()
         case .subjects: SubjectsView()
         case .stats: StatsView()
+        case .log: LogView()
         case .tasks: TasksView()
         case .settings: SettingsView()
         }

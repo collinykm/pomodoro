@@ -17,11 +17,16 @@ coral / yellow / lavender slabs.
   presets (25/5, 45/10, 50/10, 90/20). ±5 minute nudges mid-block.
 - **Intention before, reflection after.** Type one line about what you are locking in on; when the
   block ends you rate your focus (1–5) and jot what got done. Both are stored with the block.
-- **Subjects.** Classes, projects and "other", each with an emoji, a color, a short code and an
-  optional weekly goal. Pick one before starting; the time is attributed to it.
+- **Subjects.** Classes, projects and "other", each with any emoji you like, a color, a category
+  and an optional weekly goal. Pick one before starting; the time is attributed to it.
+- **Categories.** Tag subjects with "Math", "Computer Science", or anything you type, and the stats
+  roll them up: Calculus plus Linear Algebra show as one Math total.
+- **Log and edit blocks by hand.** Forgot to start the timer, or forgot to pause it? The Log tab
+  lists every block by day; add one, or click any block (there or under Recent blocks in Stats) to
+  change its start, duration, subject, intention, rating or notes, or delete it.
 - **Stats.** Today / this week / this month totals, current and best streak, a stacked chart by
-  hour (day) or by day (week, month) colored by subject, a per-subject breakdown with share of
-  total, and the recent blocks with their intentions and ratings.
+  hour (day) or by day (week, month) colored by subject, breakdowns by category and by subject with
+  share of total, and the recent blocks with their intentions and ratings.
 - **Menu bar countdown** with a compact control panel (start/pause, skip, reset, +5, subject picker).
 - **Google Tasks.** See your open tasks, add and complete them, and push one into the intention
   field with "Focus on it". Uses your own OAuth client; tokens live in the Keychain.
@@ -67,7 +72,7 @@ LockIn/
   Models/Stats.swift       Pure aggregation for the stats screen
   Engine/TimerEngine.swift Wall-clock countdown, phase cycle, session logging
   Engine/AppSettings.swift UserDefaults-backed settings
-  Views/                   Timer, Subjects, Stats, Tasks, Settings, Reflection, MenuBar
+  Views/                   Timer, Subjects, Stats, Log, Tasks, Settings, Reflection, SessionEditor, MenuBar
   Integrations/            Google Tasks (OAuth + API), Calendar (EventKit), Keychain
 scripts/make_icon.py       Regenerates the app icon set
 ```

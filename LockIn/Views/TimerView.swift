@@ -6,6 +6,7 @@ struct TimerView: View {
     @Query(filter: #Predicate<Subject> { !$0.isArchived }, sort: \Subject.sortOrder)
     private var subjects: [Subject]
     @Query private var allSessions: [FocusSession]
+    @State private var loggingBlock = false
 
     private let settings = AppSettings.shared
 
@@ -33,6 +34,9 @@ struct TimerView: View {
         }
         .sheet(item: $engine.pendingReflection) { session in
             ReflectionSheet(session: session)
+        }
+        .sheet(isPresented: $loggingBlock) {
+            SessionEditor(session: nil, defaultSubject: engine.selectedSubject)
         }
     }
 
@@ -242,7 +246,16 @@ struct TimerView: View {
         let bySubject = Stats.bySubject(today)
 
         return VStack(alignment: .leading, spacing: 14) {
-            SectionTitle(text: "Today")
+            HStack {
+                SectionTitle(text: "Today")
+                Button {
+                    loggingBlock = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .buttonStyle(BrutalIconButtonStyle(fill: Ink.white, side: 30))
+                .help("Log a block you forgot to time")
+            }
             HStack(alignment: .firstTextBaseline) {
                 Text(Fmt.duration(seconds))
                     .font(TypeStyle.display(40))
@@ -310,6 +323,7 @@ struct SubjectChip: View {
                         .overlay(Rectangle().stroke(Ink.black, lineWidth: 2.5))
                 }
             }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }

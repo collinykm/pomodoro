@@ -77,6 +77,34 @@ enum Stats {
             .sorted { $0.seconds > $1.seconds }
     }
 
+    // MARK: Per-category (Math across all math classes, etc.)
+
+    static func byCategory(_ sessions: [FocusSession], allSubjects: [Subject]) -> [SubjectTotal] {
+        let colors = categoryColors(allSubjects)
+        var map: [String: (secs: Int, count: Int)] = [:]
+        for s in sessions {
+            let name = s.subject?.categoryOrNone ?? SubjectCategory.none
+            var entry = map[name] ?? (0, 0)
+            entry.secs += s.focusedSeconds
+            entry.count += 1
+            map[name] = entry
+        }
+        return map
+            .map { SubjectTotal(id: $0.key, name: $0.key, colorHex: colors[$0.key] ?? "BDBDBD", seconds: $0.value.secs, sessions: $0.value.count) }
+            .sorted { $0.seconds > $1.seconds }
+    }
+
+    /// Stable color per category: alphabetical order over every category in use, mapped onto the
+    /// fixed palette. Uncategorized is always gray.
+    static func categoryColors(_ subjects: [Subject]) -> [String: String] {
+        let names = Set(subjects.map(\.categoryOrNone)).subtracting([SubjectCategory.none]).sorted()
+        var out: [String: String] = [SubjectCategory.none: "BDBDBD"]
+        for (i, name) in names.enumerated() {
+            out[name] = i < Ink.subjectPalette.count ? String(format: "%06X", Ink.subjectPalette[i]) : "BDBDBD"
+        }
+        return out
+    }
+
     // MARK: Time buckets for charts
 
     /// Day → hourly buckets, week → daily buckets, month → daily buckets. Every bucket is present

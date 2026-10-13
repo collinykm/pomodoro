@@ -28,14 +28,24 @@ enum SubjectKind: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// Categories are free text so you can invent your own; these are the quick picks.
+enum SubjectCategory {
+    static let suggestions: [String] = [
+        "Math", "Computer Science", "Science", "Engineering", "Writing", "Reading",
+        "Languages", "History", "Business", "Economics", "Art & Design", "Music",
+        "Health", "Personal", "Other",
+    ]
+    static let none = "Uncategorized"
+}
+
 @Model
 final class Subject {
     var name: String
-    /// Optional short code shown as a tag, e.g. "CS 201" or "SIDE".
-    var code: String
     var emoji: String
     var colorHex: String
     var kindRaw: String
+    /// Free-text grouping across subjects, e.g. "Math" for Calculus + Linear Algebra.
+    var category: String = ""
     /// Weekly focus goal in minutes; 0 means no goal.
     var weeklyGoalMinutes: Int
     var isArchived: Bool
@@ -46,17 +56,17 @@ final class Subject {
     var sessions: [FocusSession] = []
 
     init(name: String,
-         code: String = "",
          emoji: String = "📚",
          colorHex: String = "FF6B6B",
          kind: SubjectKind = .course,
+         category: String = "",
          weeklyGoalMinutes: Int = 0,
          sortOrder: Int = 0) {
         self.name = name
-        self.code = code
         self.emoji = emoji
         self.colorHex = colorHex
         self.kindRaw = kind.rawValue
+        self.category = category
         self.weeklyGoalMinutes = weeklyGoalMinutes
         self.isArchived = false
         self.sortOrder = sortOrder
@@ -70,12 +80,13 @@ final class Subject {
 
     var color: Color { Color(hexString: colorHex) }
 
-    var displayCode: String {
-        code.isEmpty ? String(name.prefix(3)).uppercased() : code.uppercased()
+    var categoryOrNone: String {
+        let trimmed = category.trimmingCharacters(in: .whitespaces)
+        return trimmed.isEmpty ? SubjectCategory.none : trimmed
     }
 }
 
-// MARK: - FocusSession (one completed or abandoned focus block)
+// MARK: - FocusSession (one completed, abandoned, or hand-logged focus block)
 
 @Model
 final class FocusSession {
@@ -90,6 +101,10 @@ final class FocusSession {
     /// 0 = not rated, otherwise 1...5.
     var focusRating: Int
     var reflection: String
+    /// True when the block was typed in by hand rather than run on the timer.
+    var isManual: Bool = false
+    /// True once the user has edited the block after the fact.
+    var wasEdited: Bool = false
     var subject: Subject?
 
     init(startedAt: Date,
@@ -98,7 +113,8 @@ final class FocusSession {
          plannedSeconds: Int,
          intention: String,
          completed: Bool,
-         subject: Subject?) {
+         subject: Subject?,
+         isManual: Bool = false) {
         self.startedAt = startedAt
         self.endedAt = endedAt
         self.focusedSeconds = focusedSeconds
@@ -107,6 +123,8 @@ final class FocusSession {
         self.completed = completed
         self.focusRating = 0
         self.reflection = ""
+        self.isManual = isManual
+        self.wasEdited = false
         self.subject = subject
     }
 }
@@ -121,19 +139,19 @@ enum SeedData {
         let count = (try? context.fetchCount(descriptor)) ?? 0
         guard count == 0 else { return }
 
-        let starters: [(String, String, String, Int, SubjectKind)] = [
-            ("Calculus",       "MATH 101", "📐", 0, .course),
-            ("Intro to CS",    "CS 101",   "💻", 1, .course),
-            ("Side Project",   "BUILD",    "🛠️", 2, .project),
-            ("Reading",        "READ",     "📖", 3, .other),
+        let starters: [(name: String, emoji: String, color: Int, kind: SubjectKind, category: String)] = [
+            ("Calculus",     "📐", 0, .course, "Math"),
+            ("Intro to CS",  "💻", 1, .course, "Computer Science"),
+            ("Side Project", "🛠️", 2, .project, "Computer Science"),
+            ("Reading",      "📖", 3, .other, "Reading"),
         ]
         for (i, s) in starters.enumerated() {
-            let subject = Subject(name: s.0,
-                                  code: s.1,
-                                  emoji: s.2,
-                                  colorHex: String(format: "%06X", Ink.subjectPalette[s.3 % Ink.subjectPalette.count]),
-                                  kind: s.4,
-                                  weeklyGoalMinutes: s.4 == .course ? 180 : 0,
+            let subject = Subject(name: s.name,
+                                  emoji: s.emoji,
+                                  colorHex: String(format: "%06X", Ink.subjectPalette[s.color % Ink.subjectPalette.count]),
+                                  kind: s.kind,
+                                  category: s.category,
+                                  weeklyGoalMinutes: s.kind == .course ? 180 : 0,
                                   sortOrder: i)
             context.insert(subject)
         }

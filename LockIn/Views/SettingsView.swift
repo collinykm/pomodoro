@@ -214,15 +214,20 @@ struct BrutalStepper: View {
 
     var body: some View {
         HStack {
-            Text(label)
-                .font(TypeStyle.body(14))
-                .foregroundStyle(Ink.black)
-            Spacer()
+            if !label.isEmpty {
+                Text(label)
+                    .font(TypeStyle.body(14))
+                    .foregroundStyle(Ink.black)
+                Spacer()
+            }
             HStack(spacing: 0) {
-                Button { value = max(range.lowerBound, value - step) } label: { Image(systemName: "minus") }
-                    .buttonStyle(.plain)
-                    .frame(width: 32, height: 32)
-                    .background(Ink.white)
+                Button { value = max(range.lowerBound, value - step) } label: {
+                    Image(systemName: "minus")
+                        .frame(width: 32, height: 32)
+                        .background(Ink.white)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
                 Rectangle().fill(Ink.black).frame(width: 3)
                 Text(unit.isEmpty ? "\(value)" : "\(value) \(unit)")
                     .font(TypeStyle.label(13))
@@ -231,10 +236,13 @@ struct BrutalStepper: View {
                     .frame(height: 32)
                     .background(Ink.yellow)
                 Rectangle().fill(Ink.black).frame(width: 3)
-                Button { value = min(range.upperBound, value + step) } label: { Image(systemName: "plus") }
-                    .buttonStyle(.plain)
-                    .frame(width: 32, height: 32)
-                    .background(Ink.white)
+                Button { value = min(range.upperBound, value + step) } label: {
+                    Image(systemName: "plus")
+                        .frame(width: 32, height: 32)
+                        .background(Ink.white)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
             .font(.system(size: 13, weight: .black))
             .foregroundStyle(Ink.black)

@@ -155,9 +155,9 @@ struct BrutalButtonStyle: ButtonStyle {
                         .overlay(Rectangle().stroke(Ink.black, lineWidth: 3))
                 }
             }
+            .contentShape(Rectangle())
             .offset(x: configuration.isPressed ? shadow : 0, y: configuration.isPressed ? shadow : 0)
             .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
-            .contentShape(Rectangle())
     }
 }
 
@@ -176,9 +176,9 @@ struct BrutalIconButtonStyle: ButtonStyle {
                     Rectangle().fill(fill).overlay(Rectangle().stroke(Ink.black, lineWidth: 3))
                 }
             }
+            .contentShape(Rectangle())
             .offset(x: configuration.isPressed ? 4 : 0, y: configuration.isPressed ? 4 : 0)
             .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
-            .contentShape(Rectangle())
     }
 }
 
