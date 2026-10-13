@@ -6,25 +6,29 @@ struct StatsView: View {
     @Query(sort: \FocusSession.startedAt, order: .reverse) private var allSessions: [FocusSession]
     @Query private var allSubjects: [Subject]
     @State private var range: StatsRange = .week
+    @State private var anchor: Date = Date()
     @State private var editing: FocusSession?
     @State private var creating = false
 
     private let settings = AppSettings.shared
 
     private var rangeSessions: [FocusSession] {
-        Stats.sessions(allSessions, in: Stats.interval(for: range))
+        Stats.sessions(allSessions, in: Stats.interval(for: range, containing: anchor))
     }
+
+    private var isCurrentPeriod: Bool { Stats.isCurrent(range, anchor: anchor) }
 
     private var bySubject: [SubjectTotal] { Stats.bySubject(rangeSessions) }
 
     private var buckets: [BucketTotal] {
-        Stats.buckets(allSessions, range: range, subjectsPresent: bySubject)
+        Stats.buckets(allSessions, range: range, anchor: anchor, subjectsPresent: bySubject)
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 header
+                navigator
                 tiles
                 chartCard
                 HStack(alignment: .top, spacing: 28) {
@@ -56,7 +60,7 @@ struct StatsView: View {
                     .font(TypeStyle.display(36))
                     .tracking(-1)
                     .foregroundStyle(Ink.black)
-                Text(Stats.rangeTitle(range).uppercased())
+                Text(Stats.rangeTitle(range, anchor: anchor).uppercased())
                     .font(TypeStyle.label(12))
                     .tracking(1.2)
                     .foregroundStyle(Ink.muted)
@@ -75,6 +79,51 @@ struct StatsView: View {
             }
             .buttonStyle(BrutalButtonStyle(fill: Ink.coral, size: 12, horizontalPadding: 16, verticalPadding: 9))
             .padding(.leading, 10)
+        }
+    }
+
+    // MARK: Navigator
+
+    private var navigator: some View {
+        HStack(spacing: 10) {
+            Button { anchor = Stats.shift(anchor, range: range, by: -1) } label: { Image(systemName: "chevron.left") }
+                .buttonStyle(BrutalIconButtonStyle(fill: Ink.white, side: 34))
+                .help("Previous \(range.rawValue.lowercased())")
+
+            Text(Stats.rangeTitle(range, anchor: anchor).uppercased())
+                .font(TypeStyle.label(13))
+                .tracking(1)
+                .foregroundStyle(Ink.black)
+                .frame(minWidth: 220)
+                .padding(.horizontal, 14)
+                .frame(height: 34)
+                .background(isCurrentPeriod ? Ink.yellow : Ink.white)
+                .overlay(Rectangle().stroke(Ink.black, lineWidth: 3))
+
+            Button { anchor = Stats.shift(anchor, range: range, by: 1) } label: { Image(systemName: "chevron.right") }
+                .buttonStyle(BrutalIconButtonStyle(fill: Ink.white, side: 34))
+                .disabled(isCurrentPeriod)
+                .help("Next \(range.rawValue.lowercased())")
+
+            if !isCurrentPeriod {
+                Button(range == .day ? "Today" : (range == .week ? "This week" : "This month")) { anchor = Date() }
+                    .buttonStyle(BrutalButtonStyle(fill: Ink.yellow, size: 11, horizontalPadding: 12, verticalPadding: 8))
+            }
+
+            Spacer()
+
+            HStack(spacing: 8) {
+                Text("JUMP TO")
+                    .font(TypeStyle.label(10)).tracking(1.2).foregroundStyle(Ink.muted)
+                DatePicker("", selection: $anchor, in: ...Date(), displayedComponents: [.date])
+                    .labelsHidden()
+                    .datePickerStyle(.field)
+                    .padding(6)
+                    .background(Ink.white)
+                    .overlay(Rectangle().stroke(Ink.black, lineWidth: 3))
+                Text(range == .day ? "" : "(PICKS THE \(range.rawValue.uppercased()) THAT CONTAINS IT)")
+                    .font(TypeStyle.label(9)).tracking(0.8).foregroundStyle(Ink.muted)
+            }
         }
     }
 
@@ -107,6 +156,10 @@ struct StatsView: View {
                 SectionTitle(text: range == .day ? "Focus by hour" : "Focus by day")
                 Text("\(Fmt.duration(totalSecs)) TOTAL")
                     .font(TypeStyle.label(11)).tracking(1).foregroundStyle(Ink.muted)
+                if range != .day && totalSecs > 0 {
+                    Text("· CLICK A BAR TO OPEN THAT DAY")
+                        .font(TypeStyle.label(9)).tracking(1).foregroundStyle(Ink.muted)
+                }
             }
 
             if totalSecs == 0 {
@@ -149,11 +202,39 @@ struct StatsView: View {
                 }
                 .chartLegend(names.count > 1 ? .visible : .hidden)
                 .chartLegend(position: .top, alignment: .leading, spacing: 12)
+                .chartOverlay { proxy in
+                    GeometryReader { geo in
+                        Rectangle()
+                            .fill(Color.clear)
+                            .contentShape(Rectangle())
+                            .gesture(
+                                SpatialTapGesture().onEnded { value in
+                                    guard range != .day, let plotFrame = proxy.plotFrame else { return }
+                                    let origin = geo[plotFrame].origin
+                                    let xInPlot = value.location.x - origin.x
+                                    if let date: Date = proxy.value(atX: xInPlot) {
+                                        jump(to: date)
+                                    }
+                                }
+                            )
+                    }
+                }
                 .frame(height: 260)
             }
         }
         .padding(22)
         .brutalCard(Ink.white)
+    }
+
+    /// Switch to the day view for the day that was clicked in the week/month chart.
+    private func jump(to date: Date) {
+        let interval = Stats.interval(for: range, containing: anchor)
+        let day = Stats.calendar.startOfDay(for: date)
+        guard day >= interval.start, day < interval.end, day <= Date() else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            anchor = day
+            range = .day
+        }
     }
 
     // MARK: By category

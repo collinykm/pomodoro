@@ -87,6 +87,11 @@ final class TimerEngine {
         return secs
     }
 
+    /// When a focus block is running or paused, the moment it started.
+    var activeFocusStart: Date? {
+        phase == .focus && state != .idle ? sessionStart : nil
+    }
+
     var menuBarTitle: String {
         switch state {
         case .idle:

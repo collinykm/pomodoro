@@ -16,21 +16,25 @@ struct TimerView: View {
         GeometryReader { geo in
             let wide = geo.size.width > 1040
             ScrollView {
-                if wide {
-                    HStack(alignment: .top, spacing: 36) {
+                VStack(spacing: 32) {
+                    if wide {
+                        HStack(alignment: .top, spacing: 36) {
+                            timerColumn
+                                .frame(maxWidth: .infinity)
+                            sideColumn
+                                .frame(width: 360)
+                        }
+                    } else {
                         timerColumn
-                            .frame(maxWidth: .infinity)
-                        sideColumn
-                            .frame(width: 360)
-                    }
-                    .padding(32)
-                } else {
-                    VStack(spacing: 32) {
-                        timerColumn
                         sideColumn
                     }
-                    .padding(32)
+                    DayTimelineCard(allSessions: allSessions,
+                                    activeStart: engine.activeFocusStart,
+                                    activeColor: engine.accent) { session in
+                        editingBlock = session
+                    }
                 }
+                .padding(32)
             }
         }
         .sheet(item: $engine.pendingReflection) { session in

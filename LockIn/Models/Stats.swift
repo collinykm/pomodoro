@@ -109,8 +109,8 @@ enum Stats {
 
     /// Day → hourly buckets, week → daily buckets, month → daily buckets. Every bucket is present
     /// (zero rows are emitted for empty buckets so the axis stays complete).
-    static func buckets(_ all: [FocusSession], range: StatsRange, subjectsPresent: [SubjectTotal]) -> [BucketTotal] {
-        let interval = interval(for: range)
+    static func buckets(_ all: [FocusSession], range: StatsRange, anchor: Date = Date(), subjectsPresent: [SubjectTotal]) -> [BucketTotal] {
+        let interval = interval(for: range, containing: anchor)
         let rows = sessions(all, in: interval)
         let component: Calendar.Component = range == .day ? .hour : .day
 
@@ -191,9 +191,24 @@ enum Stats {
         return f.string(from: date)
     }
 
-    static func rangeTitle(_ range: StatsRange) -> String {
+    /// Moves an anchor date by whole days, weeks or months.
+    static func shift(_ anchor: Date, range: StatsRange, by steps: Int) -> Date {
+        let component: Calendar.Component
+        switch range {
+        case .day: component = .day
+        case .week: component = .weekOfYear
+        case .month: component = .month
+        }
+        return calendar.date(byAdding: component, value: steps, to: anchor) ?? anchor
+    }
+
+    static func isCurrent(_ range: StatsRange, anchor: Date) -> Bool {
+        interval(for: range, containing: anchor).contains(Date())
+    }
+
+    static func rangeTitle(_ range: StatsRange, anchor: Date = Date()) -> String {
         let f = DateFormatter()
-        let interval = interval(for: range)
+        let interval = interval(for: range, containing: anchor)
         switch range {
         case .day:
             f.dateFormat = "EEEE, MMM d"

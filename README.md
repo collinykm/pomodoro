@@ -28,7 +28,10 @@ coral / yellow / lavender slabs.
   end time and leaves the start alone.
 - **Stats.** Today / this week / this month totals, current and best streak, a stacked chart by
   hour (day) or by day (week, month) colored by subject, breakdowns by category and by subject with
-  share of total, and the recent blocks with their intentions and ratings.
+  share of total, and the recent blocks with their intentions and ratings. Step back and forward by
+  day, week or month, jump to any date, and click a bar in the week or month chart to open that day.
+- **Day timeline.** The bottom of the Focus screen shows the day's blocks on a horizontal timeline
+  with a week strip of daily totals. Click a block to edit it; the running block is drawn live.
 - **Menu bar countdown** with a compact control panel (start/pause, skip, reset, +5, subject picker).
 - **Google Tasks.** See your open tasks, add and complete them, and push one into the intention
   field with "Focus on it". Uses your own OAuth client; tokens live in the Keychain.
