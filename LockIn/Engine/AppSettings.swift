@@ -20,6 +20,7 @@ final class AppSettings {
     var logToCalendar: Bool { didSet { defaults.set(logToCalendar, forKey: "logToCalendar") } }
     var calendarIdentifier: String { didSet { defaults.set(calendarIdentifier, forKey: "calendarIdentifier") } }
     var showMenuBarCountdown: Bool { didSet { defaults.set(showMenuBarCountdown, forKey: "showMenuBarCountdown") } }
+    var showMarquee: Bool { didSet { defaults.set(showMarquee, forKey: "showMarquee") } }
     var dailyGoalMinutes: Int { didSet { defaults.set(dailyGoalMinutes, forKey: "dailyGoalMinutes") } }
     /// Google OAuth client id for the Tasks integration (client secret lives in the Keychain).
     var googleClientID: String { didSet { defaults.set(googleClientID, forKey: "googleClientID") } }
@@ -40,6 +41,7 @@ final class AppSettings {
             "logToCalendar": false,
             "calendarIdentifier": "",
             "showMenuBarCountdown": true,
+            "showMarquee": true,
             "dailyGoalMinutes": 120,
             "googleClientID": "",
             "googleTaskListID": "",
@@ -56,6 +58,7 @@ final class AppSettings {
         logToCalendar = d.bool(forKey: "logToCalendar")
         calendarIdentifier = d.string(forKey: "calendarIdentifier") ?? ""
         showMenuBarCountdown = d.bool(forKey: "showMenuBarCountdown")
+        showMarquee = d.bool(forKey: "showMarquee")
         dailyGoalMinutes = d.integer(forKey: "dailyGoalMinutes")
         googleClientID = d.string(forKey: "googleClientID") ?? ""
         googleTaskListID = d.string(forKey: "googleTaskListID") ?? ""

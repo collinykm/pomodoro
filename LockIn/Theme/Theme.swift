@@ -221,34 +221,61 @@ struct SectionTitle: View {
     }
 }
 
-/// The scrolling red marquee strip at the very top.
+/// The scrolling red marquee strip at the very top. Two identical copies of the line scroll
+/// left by exactly one copy width, so the loop is seamless.
 struct MarqueeBar: View {
     var items: [String]
+    var pointsPerSecond: CGFloat = 55
+    @State private var copyWidth: CGFloat = 0
     @State private var offset: CGFloat = 0
 
+    private var line: String {
+        items.map { "  \($0)  ★" }.joined()
+    }
+
     var body: some View {
-        GeometryReader { geo in
-            let text = items.map { "  \($0)  ★" }.joined()
-            HStack(spacing: 0) {
-                ForEach(0..<4, id: \.self) { _ in
-                    Text(text)
-                        .font(.system(size: 11, weight: .black))
-                        .tracking(1.5)
-                        .foregroundStyle(Ink.black)
-                        .fixedSize()
+        let text = line
+        ZStack(alignment: .leading) {
+            // Hidden measuring copy.
+            marqueeText(text)
+                .hidden()
+                .background {
+                    GeometryReader { geo in
+                        Color.clear
+                            .onAppear { restart(width: geo.size.width) }
+                            .onChange(of: geo.size.width) { _, w in restart(width: w) }
+                    }
                 }
+                .fixedSize()
+            HStack(spacing: 0) {
+                marqueeText(text).fixedSize()
+                marqueeText(text).fixedSize()
             }
             .offset(x: offset)
-            .onAppear {
-                withAnimation(.linear(duration: 40).repeatForever(autoreverses: false)) {
-                    offset = -geo.size.width
-                }
-            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: 28)
         .background(Ink.coral)
         .overlay(alignment: .bottom) { Rectangle().fill(Ink.black).frame(height: 3) }
         .clipped()
+    }
+
+    private func marqueeText(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 11, weight: .black))
+            .tracking(1.5)
+            .foregroundStyle(Ink.black)
+            .lineLimit(1)
+    }
+
+    private func restart(width: CGFloat) {
+        guard width > 0, width != copyWidth else { return }
+        copyWidth = width
+        offset = 0
+        let duration = Double(width / pointsPerSecond)
+        withAnimation(.linear(duration: duration).repeatForever(autoreverses: false)) {
+            offset = -width
+        }
     }
 }
 

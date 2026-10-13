@@ -15,6 +15,7 @@ struct ContentView: View {
     @Environment(TimerEngine.self) private var engine
     @Query private var allSessions: [FocusSession]
     @State private var screen: Screen = .focus
+    private let settings = AppSettings.shared
 
     private var todaySeconds: Int { Stats.totalSeconds(Stats.today(allSessions)) }
 
@@ -22,7 +23,9 @@ struct ContentView: View {
         ZStack {
             PaperBackground()
             VStack(spacing: 0) {
-                MarqueeBar(items: marqueeItems)
+                if settings.showMarquee {
+                    MarqueeBar(items: marqueeItems)
+                }
                 navBar
                 Divider().frame(height: 3).overlay(Ink.black)
                 content
@@ -38,14 +41,21 @@ struct ContentView: View {
     }
 
     private var marqueeItems: [String] {
-        var items = ["LOCK IN", "\(Fmt.duration(todaySeconds)) FOCUSED TODAY"]
+        var items = ["\(Fmt.duration(todaySeconds)) FOCUSED TODAY"]
         if engine.isRunning {
             items.append(engine.phase == .focus ? "FOCUS MODE ON" : "BREAK TIME")
         }
         let streak = Stats.streak(allSessions)
         if streak > 1 { items.append("\(streak) DAY STREAK") }
-        items.append("ONE BLOCK AT A TIME")
-        return items
+        // Sprinkle the live stats between a daily-shuffled mix of quotes and jokes.
+        let lines = Marquee.lineup()
+        var out: [String] = []
+        for (i, line) in lines.enumerated() {
+            out.append(line)
+            if i % 3 == 2, let stat = items.first { out.append(stat); items.removeFirst() }
+        }
+        out.append(contentsOf: items)
+        return out
     }
 
     private var navBar: some View {

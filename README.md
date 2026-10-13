@@ -22,8 +22,10 @@ coral / yellow / lavender slabs.
 - **Categories.** Tag subjects with "Math", "Computer Science", or anything you type, and the stats
   roll them up: Calculus plus Linear Algebra show as one Math total.
 - **Log and edit blocks by hand.** Forgot to start the timer, or forgot to pause it? The Log tab
-  lists every block by day; add one, or click any block (there or under Recent blocks in Stats) to
-  change its start, duration, subject, intention, rating or notes, or delete it.
+  lists every block by day; add one, or click any block (there, under Recent blocks in Stats, or in
+  the Today card on the timer) to change its start, end, focused minutes, subject, intention, rating
+  or notes, or delete it. Focused time is typed freely ("40", "1:30", "1.5h"); changing it moves the
+  end time and leaves the start alone.
 - **Stats.** Today / this week / this month totals, current and best streak, a stacked chart by
   hour (day) or by day (week, month) colored by subject, breakdowns by category and by subject with
   share of total, and the recent blocks with their intentions and ratings.
@@ -33,6 +35,8 @@ coral / yellow / lavender slabs.
 - **Calendar logging.** Every finished block becomes an event in the Apple Calendar you choose.
   Notion Calendar reads Apple/iCloud and Google calendars, so this is how your focus time shows up
   there. (Notion Calendar has no public write API, so this is the bridge.)
+- **Banner.** The scrolling strip at the top mixes motivational quotes, jokes and your live stats,
+  reshuffled daily. Turn it off in Settings if you want quiet.
 - Notifications and a chime at phase changes. Keyboard: `⌘↩` start/pause, `⌘K` skip, `⌘R` reset,
   `⌘=` / `⌘-` add or remove five minutes, `Space` toggles the timer when no text field has focus.
 

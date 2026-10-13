@@ -7,6 +7,7 @@ struct TimerView: View {
     private var subjects: [Subject]
     @Query private var allSessions: [FocusSession]
     @State private var loggingBlock = false
+    @State private var editingBlock: FocusSession?
 
     private let settings = AppSettings.shared
 
@@ -37,6 +38,9 @@ struct TimerView: View {
         }
         .sheet(isPresented: $loggingBlock) {
             SessionEditor(session: nil, defaultSubject: engine.selectedSubject)
+        }
+        .sheet(item: $editingBlock) { session in
+            SessionEditor(session: session)
         }
     }
 
@@ -127,6 +131,14 @@ struct TimerView: View {
             // Intention
             intentionCard
         }
+    }
+
+    private func blockTime(_ s: FocusSession) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        var text = "\(f.string(from: s.startedAt)) – \(f.string(from: s.endedAt))".uppercased()
+        if s.isManual { text += " · LOGGED" } else if s.wasEdited { text += " · EDITED" }
+        return text
     }
 
     private var clockSize: CGFloat {
@@ -243,7 +255,6 @@ struct TimerView: View {
         let today = Stats.today(allSessions)
         let seconds = Stats.totalSeconds(today)
         let goal = max(1, settings.dailyGoalMinutes * 60)
-        let bySubject = Stats.bySubject(today)
 
         return VStack(alignment: .leading, spacing: 14) {
             HStack {
@@ -273,23 +284,49 @@ struct TimerView: View {
                 .tracking(1)
                 .foregroundStyle(Ink.muted)
 
-            if !bySubject.isEmpty {
+            if !today.isEmpty {
                 Divider().frame(height: 2).overlay(Ink.black)
-                ForEach(bySubject.prefix(4)) { row in
-                    HStack(spacing: 10) {
-                        Rectangle()
-                            .fill(Color(hexString: row.colorHex))
-                            .frame(width: 12, height: 12)
-                            .overlay(Rectangle().stroke(Ink.black, lineWidth: 2))
-                        Text(row.name)
-                            .font(TypeStyle.body(13))
-                            .foregroundStyle(Ink.black)
-                            .lineLimit(1)
-                        Spacer()
-                        Text(Fmt.duration(row.seconds))
-                            .font(TypeStyle.label(12))
-                            .foregroundStyle(Ink.black)
+                HStack {
+                    Text("BLOCKS · CLICK TO EDIT")
+                        .font(TypeStyle.label(9)).tracking(1).foregroundStyle(Ink.muted)
+                    Spacer()
+                    if today.count > 6 {
+                        Button("ALL \(today.count) IN LOG") {
+                            NotificationCenter.default.post(name: .lockInShowScreen, object: Screen.log.rawValue)
+                        }
+                        .buttonStyle(.plain)
+                        .font(TypeStyle.label(9)).tracking(1).foregroundStyle(Ink.black)
                     }
+                }
+                ForEach(today.sorted { $0.startedAt > $1.startedAt }.prefix(6)) { s in
+                    Button {
+                        editingBlock = s
+                    } label: {
+                        HStack(spacing: 10) {
+                            Rectangle()
+                                .fill(s.subject?.color ?? Color(hex: 0xBDBDBD))
+                                .frame(width: 12, height: 12)
+                                .overlay(Rectangle().stroke(Ink.black, lineWidth: 2))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(s.subject?.name ?? "Unassigned")
+                                    .font(TypeStyle.body(13))
+                                    .foregroundStyle(Ink.black)
+                                    .lineLimit(1)
+                                Text(blockTime(s))
+                                    .font(TypeStyle.label(9)).tracking(0.8).foregroundStyle(Ink.muted)
+                            }
+                            Spacer()
+                            Text(Fmt.duration(s.focusedSeconds))
+                                .font(TypeStyle.label(12))
+                                .foregroundStyle(Ink.black)
+                            Image(systemName: "pencil")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundStyle(Ink.muted)
+                        }
+                        .padding(.vertical, 4)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }

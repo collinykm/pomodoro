@@ -76,6 +76,7 @@ struct SettingsView: View {
             BrutalToggle(label: "Play a sound when a phase ends", isOn: $settings.playSounds)
             BrutalToggle(label: "Show a notification when a phase ends", isOn: $settings.showNotifications)
             BrutalToggle(label: "Show the countdown in the menu bar", isOn: $settings.showMenuBarCountdown)
+            BrutalToggle(label: "Show the scrolling banner of quotes and jokes", isOn: $settings.showMarquee)
         }
         .padding(22)
         .brutalCard(Ink.white)
