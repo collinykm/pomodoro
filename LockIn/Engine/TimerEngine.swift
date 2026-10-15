@@ -42,6 +42,10 @@ final class TimerEngine {
     var pendingReflection: FocusSession?
     /// Toggled briefly when a phase completes so the UI can flash.
     private(set) var justCompleted: Bool = false
+    /// True once a focus block has passed its target length and the clock is counting up.
+    private(set) var overtime: Bool = false
+    /// Seconds focused in the active block, refreshed every tick (drives the overtime stopwatch).
+    private(set) var elapsed: Int = 0
 
     var intention: String = ""
     var selectedSubject: Subject?
@@ -72,7 +76,13 @@ final class TimerEngine {
 
     var progress: Double {
         guard total > 0 else { return 0 }
+        if overtime { return 1 }
         return 1 - Double(remaining) / Double(total)
+    }
+
+    /// What the big clock should show: a countdown, or a stopwatch once the target is passed.
+    var clockText: String {
+        phase == .focus && overtime ? Fmt.clock(elapsed) : Fmt.clock(remaining)
     }
 
     var isRunning: Bool { state == .running }
@@ -97,6 +107,7 @@ final class TimerEngine {
         case .idle:
             return phase == .focus ? "LOCK IN" : Fmt.clock(remaining)
         case .running:
+            if overtime { return "⏱ " + Fmt.clock(elapsed) }
             return (phase == .focus ? "" : "☕ ") + Fmt.clock(remaining)
         case .paused:
             return "⏸ " + Fmt.clock(remaining)
@@ -160,7 +171,8 @@ final class TimerEngine {
         switch phase {
         case .focus:
             if state != .idle {
-                finishFocus(completed: false)
+                // Past the target counts as a completed block; before it is an early finish.
+                finishFocus(completed: overtime)
             } else {
                 advanceAfterFocus(autoStart: false)
             }
@@ -188,6 +200,15 @@ final class TimerEngine {
 
     func add(minutes: Int) {
         let delta = minutes * 60
+        if overtime {
+            // Extending an overtime block turns it back into a countdown from now.
+            guard delta > 0 else { return }
+            overtime = false
+            total = elapsed + delta
+            remaining = delta
+            if state == .running { endDate = Date().addingTimeInterval(TimeInterval(delta)) }
+            return
+        }
         total = max(60, total + delta)
         remaining = max(1, remaining + delta)
         if state == .running {
@@ -216,8 +237,26 @@ final class TimerEngine {
             guard let endDate else { return }
             let left = Int(ceil(endDate.timeIntervalSince(Date())))
             remaining = max(0, left)
-            if left <= 0 { phaseCompleted() }
+            if phase == .focus { elapsed = focusedSoFar }
+            if left <= 0 {
+                if phase == .focus {
+                    // Focus never ends on its own: hit the target, then keep counting up.
+                    if !overtime { targetReached() }
+                } else {
+                    phaseCompleted()
+                }
+            }
         }
+    }
+
+    private func targetReached() {
+        overtime = true
+        flash()
+        let what = selectedSubject.map { " on \($0.name)" } ?? ""
+        Notifier.notify(title: "Target reached",
+                        body: "\(Fmt.duration(total))\(what) done. The clock keeps counting until you finish the block.",
+                        sound: settings.playSounds,
+                        enabled: settings.showNotifications)
     }
 
     private func phaseCompleted() {
@@ -302,6 +341,8 @@ final class TimerEngine {
     }
 
     private func cancelCountdown() {
+        overtime = false
+        elapsed = 0
         endDate = nil
         segmentStart = nil
         sessionStart = nil

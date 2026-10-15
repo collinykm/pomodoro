@@ -55,6 +55,9 @@ struct TimerView: View {
             // Phase header
             HStack(alignment: .firstTextBaseline, spacing: 14) {
                 Tag(text: phaseTagText, fill: engine.phase.isBreak ? engine.accent : Ink.coral, rotation: -2)
+                if engine.overtime {
+                    Tag(text: "Overtime", fill: Ink.black, foreground: Ink.yellow, rotation: 2)
+                }
                 if let subject = engine.selectedSubject, engine.phase == .focus {
                     Tag(text: "\(subject.emoji) \(subject.name)", fill: subject.color)
                 }
@@ -64,7 +67,7 @@ struct TimerView: View {
 
             // Big clock slab
             ZStack(alignment: .topTrailing) {
-                Text(Fmt.clock(engine.remaining))
+                Text(engine.clockText)
                     .font(TypeStyle.mono(clockSize))
                     .tracking(-4)
                     .foregroundStyle(Ink.black)
@@ -88,7 +91,7 @@ struct TimerView: View {
             VStack(alignment: .leading, spacing: 8) {
                 BrutalProgressBar(progress: engine.progress, fill: engine.phase.isBreak ? engine.accent : Ink.coral)
                 HStack {
-                    Text(engine.state == .idle ? "READY" : (engine.state == .paused ? "PAUSED" : "IN PROGRESS"))
+                    Text(engine.state == .idle ? "READY" : (engine.state == .paused ? "PAUSED" : (engine.overtime ? "TARGET HIT · STILL COUNTING" : "IN PROGRESS")))
                     Spacer()
                     Text("\(Int(engine.progress * 100))% · \(Fmt.duration(engine.total)) BLOCK")
                 }
@@ -110,9 +113,9 @@ struct TimerView: View {
                 Button {
                     engine.skip()
                 } label: {
-                    Label(engine.phase.isBreak ? "Skip break" : "Finish early", systemImage: "forward.fill")
+                    Label(engine.phase.isBreak ? "Skip break" : (engine.overtime ? "Finish block" : "Finish early"), systemImage: engine.overtime ? "checkmark" : "forward.fill")
                 }
-                .buttonStyle(BrutalButtonStyle(fill: Ink.white, size: 13))
+                .buttonStyle(BrutalButtonStyle(fill: engine.overtime ? Ink.coral : Ink.white, size: 13))
 
                 Button {
                     engine.reset()

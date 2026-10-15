@@ -21,7 +21,7 @@ struct MenuBarView: View {
                         .font(TypeStyle.label(10)).tracking(1).foregroundStyle(Ink.muted)
                 }
 
-                Text(Fmt.clock(engine.remaining))
+                Text(engine.clockText)
                     .font(TypeStyle.mono(56))
                     .tracking(-2)
                     .foregroundStyle(Ink.black)

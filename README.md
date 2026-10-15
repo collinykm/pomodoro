@@ -14,7 +14,8 @@ coral / yellow / lavender slabs.
 ## Features
 
 - **Focus / short break / long break cycle** with configurable lengths, auto-start toggles, and
-  presets (25/5, 45/10, 50/10, 90/20). ±5 minute nudges mid-block.
+  presets (25/5, 45/10, 50/10, 90/20). ±5 minute nudges mid-block. A focus block never ends on its
+  own: when the countdown hits zero it chimes and turns into a stopwatch until you finish it.
 - **Intention before, reflection after.** Type one line about what you are locking in on; when the
   block ends you rate your focus (1–5), jot what got done, and can still pick the subject or fix the
   start and end times. The intention clears for the next block.
@@ -31,8 +32,8 @@ coral / yellow / lavender slabs.
   hour (day) or by day (week, month) colored by subject, breakdowns by category and by subject with
   share of total, and the recent blocks with their intentions and ratings. Step back and forward by
   day, week or month, jump to any date, and click a bar in the week or month chart to open that day.
-- **Day timeline.** The bottom of the Focus screen shows the day's blocks on a horizontal timeline
-  with a week strip of daily totals. Click a block to edit it; the running block is drawn live.
+- **Day timeline.** The bottom of the Focus screen shows the day's blocks on a horizontal,
+  side-scrolling 24-hour timeline with a week strip of daily totals. Click a block to edit it; the running block is drawn live.
 - **Menu bar countdown** with a compact control panel (start/pause, skip, reset, +5, subject picker).
 - **Google Tasks.** See your open tasks, add and complete them, and push one into the intention
   field with "Focus on it". Uses your own OAuth client; tokens live in the Keychain.

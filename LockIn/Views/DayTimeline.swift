@@ -115,112 +115,100 @@ struct DayTimelineCard: View {
 
     // MARK: Timeline
 
-    /// Hours shown. Always covers 8am–6pm, stretched to include every block and the current time.
-    private var hourRange: (start: Int, end: Int) {
-        var start = 8, end = 18
-        let blocks = daySessions
-        if let first = blocks.first {
-            start = min(start, cal.component(.hour, from: first.startedAt))
-        }
-        for s in blocks {
-            let endHour = cal.component(.hour, from: s.endedAt) + 1
-            let sameDay = cal.isDate(s.endedAt, inSameDayAs: day)
-            end = max(end, sameDay ? endHour : 24)
-        }
-        if isToday {
-            let h = cal.component(.hour, from: now)
-            end = max(end, h + 1)
-            if let activeStart { start = min(start, cal.component(.hour, from: activeStart)) }
-        }
-        return (max(0, start), min(24, max(end, start + 1)))
+    /// Points per hour. Fixed, so the strip always spans the full day and scrolls sideways.
+    private let hourWidth: CGFloat = 110
+
+    /// The hour to scroll into view first: a little before the current time today, otherwise a
+    /// little before the day's first block.
+    private var anchorHour: Int {
+        if isToday { return max(0, cal.component(.hour, from: now) - 4) }
+        if let first = daySessions.first { return max(0, cal.component(.hour, from: first.startedAt) - 1) }
+        return 8
     }
 
     private var timeline: some View {
-        let range = hourRange
         let dayStart = cal.startOfDay(for: day)
-        let windowStart = cal.date(byAdding: .hour, value: range.start, to: dayStart)!
-        let windowEnd = cal.date(byAdding: .hour, value: range.end, to: dayStart)!
-        let span = windowEnd.timeIntervalSince(windowStart)
+        let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart)!
+        let span = dayEnd.timeIntervalSince(dayStart)
+        let width = hourWidth * 24
         let lanes = laneAssignments(daySessions)
         let laneCount = max(1, (lanes.values.max() ?? 0) + 1)
         let laneHeight: CGFloat = 52
         let laneGap: CGFloat = 6
-
-        return GeometryReader { geo in
-            let width = geo.size.width
-            let x: (Date) -> CGFloat = { date in
-                let t = date.timeIntervalSince(windowStart) / span
-                return CGFloat(min(1, max(0, t))) * width
-            }
-
-            ZStack(alignment: .topLeading) {
-                // Hour grid + labels
-                ForEach(range.start...range.end, id: \.self) { hour in
-                    let hx = CGFloat(hour - range.start) / CGFloat(range.end - range.start) * width
-                    Rectangle()
-                        .fill(Ink.black.opacity(hour == range.start || hour == range.end ? 0.6 : 0.2))
-                        .frame(width: 1)
-                        .offset(x: hx)
-                    if shouldLabel(hour, totalHours: range.end - range.start, width: width) {
-                        Text(hourLabel(hour))
-                            .font(TypeStyle.label(9))
-                            .tracking(0.5)
-                            .foregroundStyle(Ink.muted)
-                            .offset(x: hx + 4, y: CGFloat(laneCount) * (laneHeight + laneGap) + 2)
-                    }
-                }
-
-                // Blocks
-                ForEach(daySessions) { s in
-                    let lane = lanes[s.persistentModelID] ?? 0
-                    let x0 = x(s.startedAt)
-                    let x1 = max(x(s.endedAt), x0 + 6)
-                    Button {
-                        onEdit(s)
-                    } label: {
-                        TimelineBlock(session: s, width: x1 - x0)
-                            .frame(width: x1 - x0, height: laneHeight)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .offset(x: x0, y: CGFloat(lane) * (laneHeight + laneGap))
-                    .help(tooltip(s))
-                }
-
-                // Live block
-                if isToday, let activeStart {
-                    let x0 = x(activeStart)
-                    let x1 = max(x(now), x0 + 6)
-                    Rectangle()
-                        .fill(activeColor)
-                        .overlay(Rectangle().stroke(Ink.black, style: StrokeStyle(lineWidth: 2.5, dash: [5, 3])))
-                        .overlay(alignment: .leading) {
-                            Text("NOW")
-                                .font(TypeStyle.label(9)).tracking(1).foregroundStyle(Ink.black)
-                                .padding(.leading, 6)
-                        }
-                        .frame(width: x1 - x0, height: laneHeight)
-                        .offset(x: x0, y: 0)
-                        .allowsHitTesting(false)
-                }
-
-                // Now marker
-                if isToday {
-                    Rectangle()
-                        .fill(Ink.coral)
-                        .frame(width: 3, height: CGFloat(laneCount) * (laneHeight + laneGap) - laneGap)
-                        .offset(x: x(now) - 1.5)
-                        .allowsHitTesting(false)
-                }
-            }
+        let x: (Date) -> CGFloat = { date in
+            let t = date.timeIntervalSince(dayStart) / span
+            return CGFloat(min(1, max(0, t))) * width
         }
-        .frame(height: CGFloat(laneCount) * (laneHeight + laneGap) + 18)
-    }
 
-    private func shouldLabel(_ hour: Int, totalHours: Int, width: CGFloat) -> Bool {
-        let perHour = width / CGFloat(max(1, totalHours))
-        let every = perHour > 70 ? 1 : (perHour > 36 ? 2 : 3)
-        return (hour - hourRange.start) % every == 0 && hour != hourRange.end
+        return ScrollViewReader { scroller in
+            ScrollView(.horizontal, showsIndicators: true) {
+                ZStack(alignment: .topLeading) {
+                    // Hour grid + labels (each hour gets an id so the strip can scroll to it)
+                    ForEach(0...24, id: \.self) { hour in
+                        let hx = CGFloat(hour) * hourWidth
+                        Rectangle()
+                            .fill(Ink.black.opacity(hour % 6 == 0 ? 0.6 : 0.2))
+                            .frame(width: 1)
+                            .offset(x: hx)
+                            .id(hour)
+                        if hour < 24 {
+                            Text(hourLabel(hour))
+                                .font(TypeStyle.label(9))
+                                .tracking(0.5)
+                                .foregroundStyle(Ink.muted)
+                                .offset(x: hx + 4, y: CGFloat(laneCount) * (laneHeight + laneGap) + 2)
+                        }
+                    }
+
+                    // Blocks
+                    ForEach(daySessions) { s in
+                        let lane = lanes[s.persistentModelID] ?? 0
+                        let x0 = x(s.startedAt)
+                        let x1 = max(x(s.endedAt), x0 + 6)
+                        Button {
+                            onEdit(s)
+                        } label: {
+                            TimelineBlock(session: s, width: x1 - x0)
+                                .frame(width: x1 - x0, height: laneHeight)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .offset(x: x0, y: CGFloat(lane) * (laneHeight + laneGap))
+                        .help(tooltip(s))
+                    }
+
+                    // Live block
+                    if isToday, let activeStart {
+                        let x0 = x(activeStart)
+                        let x1 = max(x(now), x0 + 6)
+                        Rectangle()
+                            .fill(activeColor)
+                            .overlay(Rectangle().stroke(Ink.black, style: StrokeStyle(lineWidth: 2.5, dash: [5, 3])))
+                            .overlay(alignment: .leading) {
+                                Text("NOW")
+                                    .font(TypeStyle.label(9)).tracking(1).foregroundStyle(Ink.black)
+                                    .padding(.leading, 6)
+                            }
+                            .frame(width: x1 - x0, height: laneHeight)
+                            .offset(x: x0, y: 0)
+                            .allowsHitTesting(false)
+                    }
+
+                    // Now marker
+                    if isToday {
+                        Rectangle()
+                            .fill(Ink.coral)
+                            .frame(width: 3, height: CGFloat(laneCount) * (laneHeight + laneGap) - laneGap)
+                            .offset(x: x(now) - 1.5)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .frame(width: width, height: CGFloat(laneCount) * (laneHeight + laneGap) + 18, alignment: .topLeading)
+            }
+            .onAppear { scroller.scrollTo(anchorHour, anchor: .leading) }
+            .onChange(of: day) { _, _ in scroller.scrollTo(anchorHour, anchor: .leading) }
+        }
+        .frame(height: CGFloat(laneCount) * (laneHeight + laneGap) + 32)
     }
 
     private func hourLabel(_ hour: Int) -> String {
