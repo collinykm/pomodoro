@@ -118,12 +118,12 @@ struct DayTimelineCard: View {
     /// Points per hour. Fixed, so the strip always spans the full day and scrolls sideways.
     private let hourWidth: CGFloat = 110
 
-    /// The hour to scroll into view first: a little before the current time today, otherwise a
-    /// little before the day's first block.
-    private var anchorHour: Int {
-        if isToday { return max(0, cal.component(.hour, from: now) - 4) }
-        if let first = daySessions.first { return max(0, cal.component(.hour, from: first.startedAt) - 1) }
-        return 8
+    /// Where the strip scrolls to first: centered on the current time today, otherwise on the
+    /// day's first block (or midday if the day is empty).
+    private var anchorDate: Date {
+        if isToday { return Date() }
+        if let first = daySessions.first { return first.startedAt }
+        return cal.date(byAdding: .hour, value: 12, to: cal.startOfDay(for: day))!
     }
 
     private var timeline: some View {
@@ -202,13 +202,27 @@ struct DayTimelineCard: View {
                             .offset(x: x(now) - 1.5)
                             .allowsHitTesting(false)
                     }
+
+                    // Invisible scroll target at the anchor time.
+                    Color.clear
+                        .frame(width: 1, height: 1)
+                        .offset(x: x(anchorDate))
+                        .id("anchor")
                 }
                 .frame(width: width, height: CGFloat(laneCount) * (laneHeight + laneGap) + 18, alignment: .topLeading)
             }
-            .onAppear { scroller.scrollTo(anchorHour, anchor: .leading) }
-            .onChange(of: day) { _, _ in scroller.scrollTo(anchorHour, anchor: .leading) }
+            .onAppear { focusAnchor(scroller) }
+            .onChange(of: day) { _, _ in focusAnchor(scroller) }
         }
         .frame(height: CGFloat(laneCount) * (laneHeight + laneGap) + 32)
+    }
+
+    /// Scroll so the anchor time sits in the middle of the strip. Deferred one run loop so the
+    /// scroll view has laid out its content before we ask it to move.
+    private func focusAnchor(_ scroller: ScrollViewProxy) {
+        DispatchQueue.main.async {
+            scroller.scrollTo("anchor", anchor: .center)
+        }
     }
 
     private func hourLabel(_ hour: Int) -> String {
