@@ -16,7 +16,8 @@ coral / yellow / lavender slabs.
 - **Focus / short break / long break cycle** with configurable lengths, auto-start toggles, and
   presets (25/5, 45/10, 50/10, 90/20). ±5 minute nudges mid-block.
 - **Intention before, reflection after.** Type one line about what you are locking in on; when the
-  block ends you rate your focus (1–5) and jot what got done. Both are stored with the block.
+  block ends you rate your focus (1–5), jot what got done, and can still pick the subject or fix the
+  start and end times. The intention clears for the next block.
 - **Subjects.** Classes, projects and "other", each with any emoji you like, a color, a category
   and an optional weekly goal. Pick one before starting; the time is attributed to it.
 - **Categories.** Tag subjects with "Math", "Computer Science", or anything you type, and the stats
@@ -24,8 +25,8 @@ coral / yellow / lavender slabs.
 - **Log and edit blocks by hand.** Forgot to start the timer, or forgot to pause it? The Log tab
   lists every block by day; add one, or click any block (there, under Recent blocks in Stats, or in
   the Today card on the timer) to change its start, end, focused minutes, subject, intention, rating
-  or notes, or delete it. Focused time is typed freely ("40", "1:30", "1.5h"); changing it moves the
-  end time and leaves the start alone.
+  or notes, or delete it. Focused time is typed freely ("40", "1:30", "1.5h"). Editing the start or
+  end changes only that field and the focused time follows; editing the focused time moves the end.
 - **Stats.** Today / this week / this month totals, current and best streak, a stacked chart by
   hour (day) or by day (week, month) colored by subject, breakdowns by category and by subject with
   share of total, and the recent blocks with their intentions and ratings. Step back and forward by

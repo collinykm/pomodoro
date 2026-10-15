@@ -4,9 +4,9 @@ import SwiftData
 /// Add a focus block by hand, or fix one that already exists (forgot to start the timer,
 /// forgot to pause it, picked the wrong subject, and so on).
 ///
-/// Start, end and focused time are all editable. Changing the focused time moves the end
-/// (start stays put); changing the end recomputes the focused time; moving the start keeps
-/// the focused time and shifts the end along with it.
+/// Start, end and focused time are all editable. Changing the start or the end changes only that
+/// field and recomputes the focused time from the span; changing the focused time moves the end
+/// and leaves the start alone.
 struct SessionEditor: View {
     /// nil creates a new block.
     let session: FocusSession?
@@ -90,7 +90,16 @@ struct SessionEditor: View {
         .onAppear(perform: load)
         .onChange(of: start) { _, newStart in
             guard !syncing else { return }
-            sync { end = newStart.addingTimeInterval(TimeInterval(focusedMinutes * 60)) }
+            let minutes = Int(end.timeIntervalSince(newStart) / 60)
+            if minutes >= 1 {
+                sync { setFocused(minutes) }
+            } else {
+                // Start pushed past the end; keep the end where it is and shrink to one minute.
+                sync {
+                    setFocused(1)
+                    start = end.addingTimeInterval(-60)
+                }
+            }
         }
         .onChange(of: end) { _, newEnd in
             guard !syncing else { return }

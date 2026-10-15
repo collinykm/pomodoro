@@ -261,6 +261,8 @@ final class TimerEngine {
             if settings.askForReflection {
                 pendingReflection = session
             }
+            // The intention belonged to this block; start the next one fresh.
+            intention = ""
             if settings.logToCalendar {
                 CalendarLogger.shared.log(session: session, subjectName: subject?.name)
             }
