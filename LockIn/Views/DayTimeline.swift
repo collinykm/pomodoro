@@ -203,11 +203,12 @@ struct DayTimelineCard: View {
                             .allowsHitTesting(false)
                     }
 
-                    // Invisible scroll target at the anchor time.
-                    Color.clear
-                        .frame(width: 1, height: 1)
-                        .offset(x: x(anchorDate))
-                        .id("anchor")
+                    // Invisible scroll target at the anchor time. Placed with a spacer rather than
+                    // an offset, because scrollTo uses layout frames and offset does not move them.
+                    HStack(spacing: 0) {
+                        Color.clear.frame(width: max(0, x(anchorDate) - 0.5), height: 1)
+                        Color.clear.frame(width: 1, height: 1).id("anchor")
+                    }
                 }
                 .frame(width: width, height: CGFloat(laneCount) * (laneHeight + laneGap) + 18, alignment: .topLeading)
             }
@@ -220,7 +221,9 @@ struct DayTimelineCard: View {
     /// Scroll so the anchor time sits in the middle of the strip. Deferred one run loop so the
     /// scroll view has laid out its content before we ask it to move.
     private func focusAnchor(_ scroller: ScrollViewProxy) {
-        DispatchQueue.main.async {
+        // Once right away and once after layout settles; the second call wins on first show.
+        scroller.scrollTo("anchor", anchor: .center)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             scroller.scrollTo("anchor", anchor: .center)
         }
     }
