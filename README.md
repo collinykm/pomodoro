@@ -58,6 +58,16 @@ The project uses Xcode's synchronized folders, so every file under `LockIn/` is 
 automatically. Data is stored with SwiftData in the app's container; nothing leaves your Mac except
 calls you explicitly enable (Google Tasks).
 
+## Keychain prompt after rebuilding?
+
+If an older build left items in your login keychain, macOS may ask for your password every time a
+new build touches them ("LockIn wants to use your confidential information stored in
+com.lockin.app"). Current builds use the data-protection keychain, which is keyed by app identity
+rather than per-build signature, so the prompt does not recur. To get rid of the leftover items
+once: open **Keychain Access**, search for `com.lockin.app`, delete the matching entries, and
+reconnect Google Tasks if you were using it. Signing with a real team (Signing & Capabilities) also
+keeps the identity stable between builds.
+
 ## Google Tasks setup (one-time, ~3 minutes)
 
 LockIn talks to Google directly from your Mac, so it needs an OAuth client of your own.
