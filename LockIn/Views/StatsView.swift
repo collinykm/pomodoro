@@ -130,16 +130,31 @@ struct StatsView: View {
     // MARK: Tiles
 
     private var tiles: some View {
-        let today = Stats.totalSeconds(Stats.today(allSessions))
-        let week = Stats.totalSeconds(Stats.thisWeek(allSessions))
-        let month = Stats.totalSeconds(Stats.thisMonth(allSessions))
+        let cal = Stats.calendar
+        let daySessions = Stats.sessions(allSessions, in: Stats.interval(for: .day, containing: anchor))
+        let weekSessions = Stats.sessions(allSessions, in: Stats.interval(for: .week, containing: anchor))
+        let monthSessions = Stats.sessions(allSessions, in: Stats.interval(for: .month, containing: anchor))
         let streak = Stats.streak(allSessions)
         let best = Stats.bestStreak(allSessions)
 
+        let dayLabel = cal.isDateInToday(anchor) ? "Today"
+            : (cal.isDateInYesterday(anchor) ? "Yesterday" : anchor.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()))
+        let weekLabel = Stats.isCurrent(.week, anchor: anchor) ? "This week" : "Week of \(Stats.interval(for: .week, containing: anchor).start.formatted(.dateTime.month(.abbreviated).day()))"
+        let monthLabel = Stats.isCurrent(.month, anchor: anchor) ? "This month" : anchor.formatted(.dateTime.month(.wide).year())
+
         return HStack(spacing: 20) {
-            StatTile(label: "Today", value: Fmt.duration(today), sub: "goal \(Fmt.duration(settings.dailyGoalMinutes * 60))", fill: Ink.yellow, rotation: -1)
-            StatTile(label: "This week", value: Fmt.duration(week), sub: "\(Stats.thisWeek(allSessions).count) blocks", fill: Ink.white)
-            StatTile(label: "This month", value: Fmt.duration(month), sub: "\(Stats.thisMonth(allSessions).count) blocks", fill: Ink.white)
+            StatTile(label: dayLabel,
+                     value: Fmt.duration(Stats.totalSeconds(daySessions)),
+                     sub: "goal \(Fmt.duration(settings.dailyGoalMinutes * 60))",
+                     fill: range == .day ? Ink.yellow : Ink.white, rotation: -1)
+            StatTile(label: weekLabel,
+                     value: Fmt.duration(Stats.totalSeconds(weekSessions)),
+                     sub: "\(weekSessions.count) blocks",
+                     fill: range == .week ? Ink.yellow : Ink.white)
+            StatTile(label: monthLabel,
+                     value: Fmt.duration(Stats.totalSeconds(monthSessions)),
+                     sub: "\(monthSessions.count) blocks",
+                     fill: range == .month ? Ink.yellow : Ink.white)
             StatTile(label: "Streak", value: "\(streak)d", sub: "best \(best)d", fill: Ink.coral, rotation: 1)
         }
     }
